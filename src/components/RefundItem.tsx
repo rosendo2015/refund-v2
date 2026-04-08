@@ -20,7 +20,7 @@ export function RefundItem({ data, ...rest }: Props) {
             <span className="text-xs text-gray-200">{data.category}</span>
         </div>
         <span className="text-sm text-gray-100 font-semibold">
-            <small className="font-normal text-gray-200">R$ </small>
+            <small className="font-normal text-gray-200">R$</small>
             {data.amount}
         </span>
     </a>

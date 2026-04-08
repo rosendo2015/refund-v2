@@ -4,25 +4,23 @@ import { Input } from "../components/Input";
 import { Select } from "../components/Select";
 import { useState } from "react";
 import { Upload } from "../components/Upload";
-import { useNavigate } from "react-router";
+import { useNavigate, useParams } from "react-router";
+import fileSvg from "../assets/file.svg"
 
 export function Refund() {
-    const [name, setName] = useState("")
-    const [category, setCategory] = useState("")
-    const [amount, setAmount] = useState("")
+    const [name, setName] = useState("Teste")
+    const [category, setCategory] = useState("Transport")
+    const [amount, setAmount] = useState("100")
     const [isLoading, setIsLoading] = useState(false)
     const [filename, setFilename] = useState<File | null>(null)
     const navigate = useNavigate()
+    const params = useParams<{ id: string }>()
 
     function onSubmit(e: React.FormEvent) {
         e.preventDefault()
-        console.log({
-            "Nome": name,
-            "Category": category,
-            "Amount": amount,
-            "IsLoading": isLoading,
-            "Filename": filename
-        })
+        if (params.id) {
+            return navigate(-1)
+        }
         navigate("/confirm", { state: { fromSubmit: true } })
     }
 
@@ -33,9 +31,21 @@ export function Refund() {
                 Dados da desesa para solicitar o reembolso
             </p>
 
-            <Input required legend="Nome da solicitação" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+                required
+                legend="Nome da solicitação"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={!!params.id}
+            />
             <div className="flex gap-4">
-                <Select required legend="Categoria" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <Select
+                    required
+                    legend="Categoria"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    disabled={!!params.id}
+                >
                     {
                         CATEGORIES_KEYS.map((category) => (
                             <option key={category} value={category}>
@@ -44,11 +54,36 @@ export function Refund() {
                         ))
                     }
                 </Select>
-                <Input required legend="Valor" placeholder="0,00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                <Input
+                    required
+                    legend="Valor"
+                    placeholder="0,00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    disabled={!!params.id}
+                />
             </div>
-            <Upload filename={filename && filename.name} onChange={(e) => e.target.files && setFilename(e.target.files[0])} />
+            {
+                params.id ? (
+                    <a href="https://www.rocketseat.com.br"
+                        target="_blank"
+                        className="text-sm text-green-100 font-semibold flex items-center justify-center gap-2 my-6 hover:opacity-70 transition ease-linear"
+                    >
+                        <img src={fileSvg} alt="icon arquivo" />
+                        Abrir comprovante
+                    </a>
+                ) : (
+                    <Upload
+                        filename={filename && filename.name}
+                        onChange={(e) => e.target.files && setFilename(e.target.files[0])}
+                        disabled={!!params.id}
+                    />
+                )}
 
-            <Button type="submit" isLoading={isLoading}>Enviar</Button>
+
+            <Button type="submit" isLoading={isLoading}>
+                {params.id ? "Voltar" : "Enviar"}
+            </Button>
         </form>
     )
 }

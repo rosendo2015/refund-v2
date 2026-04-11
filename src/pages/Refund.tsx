@@ -2,13 +2,14 @@ import { CATEGORIES, CATEGORIES_KEYS } from "../utils/categories";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
 import { Select } from "../components/Select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload } from "../components/Upload";
 import { useNavigate, useParams } from "react-router";
 import fileSvg from "../assets/file.svg"
 import { z, ZodError } from "zod";
 import { AxiosError } from "axios";
 import { api } from "../services/api";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const refundSchema = z.object({
     name: z.string()
@@ -26,6 +27,7 @@ export function Refund() {
     const [amount, setAmount] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [file, setFile] = useState<File | null>(null)
+    const [fileURL, setFileURL] = useState<string | null>(null)
     const [errors, setErrors] = useState<Record<string, string>>({});
     const navigate = useNavigate()
     const params = useParams<{ id: string }>()
@@ -87,9 +89,32 @@ export function Refund() {
             setIsLoading(false)
         }
     }
+    async function fetchRefund(id: string) {
+        try {
+            const { data } = await api.get<RefundAPIResponse>(`/refunds/${id}`)
+
+            setName(data.name)
+            setCategory(data.category)
+            setAmount(formatCurrency(data.amount))
+            setFileURL(data.filename)
+
+        } catch (error) {
+            console.log(error)
+            if (error instanceof AxiosError) {
+                return { message: error.response?.data.message }
+            }
+            return { message: "Ocorreu um erro inesperado" }
+        }
+    }
+    useEffect(() => {
+        if (params.id) {
+
+            fetchRefund(params.id)
+        }
+    }, [params.id])
 
     return (
-        <form onSubmit={onSubmit} action="" className="bg-gray-500 w-full rounded-xl flex flex-col p-10 gap-6 lg:min-w-[512px]">
+        <form onSubmit={onSubmit} className="bg-gray-500 w-full rounded-xl flex flex-col p-10 gap-6 lg:min-w-[512px]">
             <h1 className="text-xl font-bold text-gray-100">Solicitação de reembolso</h1>
             <p className="text-sm text-gray-200 mt-2 mb-4">
                 Dados da desesa para solicitar o reembolso
@@ -135,8 +160,8 @@ export function Refund() {
             {errors.amount && <p className="text-sm text-red-600 text-center font-medium"> {errors.amount} </p>}
             {errors.category && <p className="text-sm text-red-600 text-center font-medium"> {errors.category} </p>}
             {
-                params.id ? (
-                    <a href="https://www.rocketseat.com.br"
+                (params.id && fileURL) ? (
+                    <a href={`http://localhost:3333/uploads/${fileURL}`}
                         target="_blank"
                         className="text-sm text-green-100 font-semibold flex items-center justify-center gap-2 my-6 hover:opacity-70 transition ease-linear"
                     >

@@ -1,22 +1,70 @@
-import { useState } from "react";
+import { useActionState } from "react";
 import { Button } from "../components/Button";
 import { Input } from "../components/Input";
+import { AxiosError } from "axios";
+import { z, ZodError } from "zod"
+import { api } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
+
+const signInScheme = z.object({
+    email: z.string().email({ message: "e-mail inválido" }),
+    password: z.string().trim().min(6, { message: "A senha deve ter pelo menos 6 digitos" })
+})
+
+
 
 export function SignIn() {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
+    const [state, formAction, isLoading] = useActionState(signIn, null)
 
-    function onSubmit(e: React.FormEvent) {
+    const auth = useAuth()
 
-        e.preventDefault();
-        alert(email + " " + password);
+    async function signIn(_: any, formData: FormData) {
+        try {
+            const data = signInScheme.parse({
+                email: formData.get("email"),
+                password: formData.get("password")
+            })
+
+            const response = await api.post("/sessions", data)
+            auth.save(response.data)
+        } catch (error) {
+            console.log(error)
+            if (error instanceof ZodError) {
+                return { message: error.issues[0].message }
+            }
+            if (error instanceof AxiosError) {
+                return { message: error.response?.data.message }
+            }
+            return { message: "Não foi possível acessar." }
+        }
+
+
     }
-    return (
-        <form onSubmit={onSubmit} className="flex flex-col gap-4 w-full max-w-sm">
-            <Input legend="Email" type="email" placeholder="seu@ email.com" required onChange={(e) => setEmail(e.target.value)} />
 
-            <Input legend="Password" type="password" required placeholder="******" onChange={(e) => setPassword(e.target.value)} />
+    return (
+        <form action={formAction} className="flex flex-col gap-4 w-full max-w-sm">
+            <Input
+                name="email"
+                legend="Email"
+                type="email"
+                placeholder="seu@ email.com"
+                required
+
+            />
+
+            <Input
+                name="password"
+                legend="Password"
+                type="password"
+                placeholder="******"
+                required
+
+            />
+
+            <p className="text-sm text-red-600 text-center my-4 font-medium">
+                {state?.message}
+            </p>
+
 
             <Button type="submit" isLoading={isLoading}>
                 Entrar

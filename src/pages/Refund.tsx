@@ -6,22 +6,89 @@ import { useState } from "react";
 import { Upload } from "../components/Upload";
 import { useNavigate, useParams } from "react-router";
 import fileSvg from "../assets/file.svg"
+import { z, ZodError } from "zod";
+import { AxiosError } from "axios";
+import { api } from "../services/api";
+
+const refundSchema = z.object({
+    name: z.string()
+        .min(3, "O nome deve ter pelo menos 3 caracteres")
+        .max(100, "O nome deve ter no máximo 100 caracteres"),
+    category: z.string().min(1, { message: "Categoria inválida" }),
+    amount: z.coerce
+        .number({ message: "O valor deve ser maior que zero" })
+        .positive({ message: "O valor deve ser maior que zero" }),
+})
 
 export function Refund() {
-    const [name, setName] = useState("Teste")
-    const [category, setCategory] = useState("Transport")
-    const [amount, setAmount] = useState("100")
+    const [name, setName] = useState("")
+    const [category, setCategory] = useState("")
+    const [amount, setAmount] = useState("")
     const [isLoading, setIsLoading] = useState(false)
-    const [filename, setFilename] = useState<File | null>(null)
+    const [file, setFile] = useState<File | null>(null)
+    const [errors, setErrors] = useState<Record<string, string>>({});
     const navigate = useNavigate()
     const params = useParams<{ id: string }>()
 
-    function onSubmit(e: React.FormEvent) {
+    async function onSubmit(e: React.FormEvent) {
         e.preventDefault()
         if (params.id) {
             return navigate(-1)
         }
-        navigate("/confirm", { state: { fromSubmit: true } })
+        try {
+            setIsLoading(true)
+            setErrors({});
+
+            if (!file) {
+                return alert("Por favor, envie o comprovante da despesa para solicitar o reembolso")
+            }
+            const fileUploadForm = new FormData()
+            fileUploadForm.append("file", file)
+
+            const uploadResponse = await api.post("/uploads", fileUploadForm, {
+                headers: {
+                    "Content-Type": "multipart/form-data"
+                }
+            })
+
+            const data = refundSchema.parse({
+                name,
+                category,
+                amount: amount.replace(",", ".")
+            })
+
+
+            await api.post("/refunds", {
+                ...data,
+                filename: uploadResponse.data.filename,
+            })
+
+
+
+
+            navigate("/confirm", { state: { fromSubmit: true } })
+
+        } catch (error) {
+            console.log(error)
+            if (error instanceof ZodError) {
+                const formattedErrors: Record<string, string> = {};
+                error.issues.forEach((issue) => {
+                    if (issue.path[0]) {
+
+                        formattedErrors[issue.path[0] as string] = issue.message;
+                    }
+                });
+                setErrors(formattedErrors)
+                return
+
+            }
+            if (error instanceof AxiosError) {
+                return { message: error.response?.data.message }
+            }
+            return { message: "Ocorreu um erro inesperado" }
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     return (
@@ -31,6 +98,7 @@ export function Refund() {
                 Dados da desesa para solicitar o reembolso
             </p>
 
+
             <Input
                 required
                 legend="Nome da solicitação"
@@ -38,6 +106,10 @@ export function Refund() {
                 onChange={(e) => setName(e.target.value)}
                 disabled={!!params.id}
             />
+
+            {errors.name && <p className="text-sm text-red-600 text-center my-0 font-medium"> {errors.name} </p>}
+
+
             <div className="flex gap-4">
                 <Select
                     required
@@ -63,6 +135,8 @@ export function Refund() {
                     disabled={!!params.id}
                 />
             </div>
+            {errors.amount && <p className="text-sm text-red-600 text-center font-medium"> {errors.amount} </p>}
+            {errors.category && <p className="text-sm text-red-600 text-center font-medium"> {errors.category} </p>}
             {
                 params.id ? (
                     <a href="https://www.rocketseat.com.br"
@@ -74,8 +148,8 @@ export function Refund() {
                     </a>
                 ) : (
                     <Upload
-                        filename={filename && filename.name}
-                        onChange={(e) => e.target.files && setFilename(e.target.files[0])}
+                        filename={file && file.name}
+                        onChange={(e) => e.target.files && setFile(e.target.files[0])}
                         disabled={!!params.id}
                     />
                 )}

@@ -54,7 +54,7 @@ export function Refund() {
             const data = refundSchema.parse({
                 name,
                 category,
-                amount: amount.replace(",", ".")
+                amount: Number(amount.replace(",", ".")),
             })
 
 
@@ -62,9 +62,6 @@ export function Refund() {
                 ...data,
                 filename: uploadResponse.data.filename,
             })
-
-
-
 
             navigate("/confirm", { state: { fromSubmit: true } })
 

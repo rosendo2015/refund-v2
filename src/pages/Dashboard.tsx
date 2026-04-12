@@ -10,13 +10,6 @@ import { AxiosError } from "axios";
 import { api } from "../services/api";
 import { ZodError } from "zod";
 
-const REFUND_EXAMPLE = {
-    id: "123",
-    name: "Rosendo",
-    category: "Transporte",
-    amount: formatCurrency(152.25),
-    categoryImg: CATEGORIES["transport"].icon
-}
 const PER_PAGE = 5
 export function Dashboard() {
     const [name, setName] = useState("")
@@ -24,19 +17,19 @@ export function Dashboard() {
     const [totalOfPage, setTotalOfPage] = useState(0)
     const [refunds, setRefunds] = useState<RefundItemProps[]>([])
 
-
     async function fetchRefunds() {
         try {
             const response = await api.get<RefundsPaginationAPIResponse>(
                 `/refunds?name=${name.trim()}&page=${page}&perPage=${PER_PAGE}`)
 
-            setRefunds(response.data.refunds.map((refund) => ({
-                id: refund.id,
-                name: refund.user.name,
-                description: CATEGORIES[refund.category].name,
-                amount: formatCurrency(refund.amount),
-                categoryImg: CATEGORIES[refund.category].icon
-            })))
+            setRefunds(
+                response.data.refunds.map((refund) => ({
+                    id: refund.id,
+                    name: refund.user.name,
+                    description: refund.name,
+                    amount: formatCurrency(refund.amount),
+                    categoryImg: CATEGORIES[refund.category].icon
+                })))
             setTotalOfPage(response.data.pagination.totalPages)
         } catch (error) {
             console.log(error)
@@ -48,8 +41,6 @@ export function Dashboard() {
             }
             return { message: "Ocorreu um erro inesperado" }
         }
-
-
     }
     function onSubmit(e: React.FormEvent) {
         e.preventDefault()
@@ -73,14 +64,21 @@ export function Dashboard() {
         <div className="bg-gray-500 rounded-xl p-10 md:min-w-[768px]">
             <h1 className="text-gray-100 font-bold text-xl flex-1">Solicitações</h1>
 
-            <form action="" onSubmit={onSubmit} className="flex flex-1 items-center justify-between pb-6 border-b-[1px] border-b-gray-400 md:flex-row gap-2 mt-6">
+            <form
+                action=""
+                onSubmit={onSubmit}
+                className="flex flex-1 items-center justify-between pb-6 border-b-[1px] border-b-gray-400 md:flex-row gap-2 mt-6">
+
                 <Input placeholder="Pesquisar pelo nome"
                     onChange={(e) => setName(e.target.value)}
                 />
+
                 <Button type="submit" variant="icon">
                     <img src={SearchSvg} alt="icon search" className="w-5 h-5" />
                 </Button>
+
             </form>
+
             <div className="my-6 flex flex-col gap-4 max-h-[342px] overflow-y-scroll">
                 {
                     refunds.map((item) => (

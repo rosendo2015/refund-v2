@@ -53,6 +53,8 @@ export function Refund() {
                 }
             })
 
+
+
             const data = refundSchema.parse({
                 name,
                 category,
@@ -89,13 +91,13 @@ export function Refund() {
             setIsLoading(false)
         }
     }
+
     async function fetchRefund(id: string) {
         try {
             const { data } = await api.get<RefundAPIResponse>(`/refunds/${id}`)
-
             setName(data.name)
             setCategory(data.category)
-            setAmount(formatCurrency(data.amount))
+            setAmount(formatCurrency(data.amount || 0))
             setFileURL(data.filename)
 
         } catch (error) {
@@ -108,7 +110,6 @@ export function Refund() {
     }
     useEffect(() => {
         if (params.id) {
-
             fetchRefund(params.id)
         }
     }, [params.id])
